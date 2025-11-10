@@ -25,22 +25,6 @@ const cuisineOptions = [
   'caribbean',
   'central_europe',
   'chinese',
-  'eastern_europe',
-  'french',
-  'indian',
-  'italian',
-  'japanese',
-  'korean',
-  'latin_american',
-  'mediterranean',
-  'mexican',
-  'middle_eastern',
-  'nordic',
-  'north_african',
-  'southern_us',
-  'spanish',
-  'thai',
-  'vietnamese',
 ];
 
 const operatorOptions = [
@@ -90,7 +74,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div className="space-y-4 p-4 bg-card rounded-lg border">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Title Search */}
+
         <div className="space-y-2">
           <label className="text-sm font-medium">Recipe Title</label>
           <Input
@@ -101,7 +85,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           />
         </div>
 
-        {/* Cuisine Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Cuisine</label>
           <Select
@@ -123,7 +106,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </Select>
         </div>
 
-        {/* Rating Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Rating</label>
           <div className="flex gap-2">
@@ -162,7 +144,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         </div>
 
-        {/* Total Time Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Total Time (minutes)</label>
           <div className="flex gap-2">
@@ -199,7 +180,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         </div>
 
-        {/* Calories Filter */}
+
         <div className="space-y-2">
           <label className="text-sm font-medium">Calories</label>
           <div className="flex gap-2">
@@ -237,7 +218,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons */}
+
       <div className="flex gap-2 pt-2">
         <Button 
           onClick={onSearch} 

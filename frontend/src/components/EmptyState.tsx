@@ -24,11 +24,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const getDefaultIcon = () => {
     switch (variant) {
       case 'search':
-        return '🔍';
+        return '';
       case 'error':
-        return '⚠️';
+        return '';
       default:
-        return '📋';
+        return '';
     }
   };
 
@@ -56,7 +56,6 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-// Specific empty state components for common scenarios
 export const NoRecipesFound: React.FC<{
   hasFilters?: boolean;
   onClearFilters?: () => void;
@@ -64,9 +63,8 @@ export const NoRecipesFound: React.FC<{
   if (hasFilters) {
     return (
       <EmptyState
-        icon="🔍"
-        title="No recipes match your search"
-        description="Try adjusting your filters or search terms to find more recipes."
+        title="Nice to have"
+        description="Try adjusting your filters to find more recipes."
         action={onClearFilters ? {
           label: "Clear Filters",
           onClick: onClearFilters
@@ -78,9 +76,8 @@ export const NoRecipesFound: React.FC<{
 
   return (
     <EmptyState
-      icon="🍽️"
-      title="No recipes available"
-      description="There are currently no recipes in the database. Please check back later."
+      title="Nice to have"
+      description="There are currently no recipes in the database."
     />
   );
 };
@@ -91,7 +88,6 @@ export const NoDataAvailable: React.FC<{
 }> = ({ dataType, onRetry }) => {
   return (
     <EmptyState
-      icon="📭"
       title={`No ${dataType} available`}
       description={`We couldn't find any ${dataType} to display.`}
       action={onRetry ? {

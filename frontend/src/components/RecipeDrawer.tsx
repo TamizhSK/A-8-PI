@@ -11,14 +11,27 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Clock, Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Users, Trash2 } from 'lucide-react';
 import { DataField, TimeField, NutrientField } from './DataField';
 
 interface RecipeDrawerProps {
   recipe: Recipe | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete?: (recipeId: number) => Promise<void>;
+  deleting?: boolean;
 }
 
 const StarRating: React.FC<{ rating?: number }> = ({ rating }) => {
@@ -138,16 +151,59 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
   recipe,
   open,
   onOpenChange,
+  onDelete,
+  deleting = false,
 }) => {
   if (!recipe) return null;
+
+  const handleDelete = async () => {
+    if (onDelete && recipe.id) {
+      await onDelete(recipe.id);
+      onOpenChange(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="space-y-3">
-          <SheetTitle className="text-left text-xl">
-            {recipe.title}
-          </SheetTitle>
+          <div className="flex items-start justify-between">
+            <SheetTitle className="text-left text-xl flex-1">
+              {recipe.title}
+            </SheetTitle>
+            {onDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-2 text-destructive hover:text-destructive"
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{recipe.title}"? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deleting}
+                    >
+                      {deleting ? 'Deleting...' : 'Delete'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="capitalize bg-secondary px-2 py-1 rounded-md">
               {recipe.cuisine || 'N/A'}
@@ -157,7 +213,6 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Description */}
           <div>
             <h3 className="font-medium mb-2">Description</h3>
             <DataField 
@@ -166,8 +221,6 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
               className="text-sm text-muted-foreground leading-relaxed"
             />
           </div>
-
-          {/* Serving Information */}
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <DataField 
@@ -177,13 +230,9 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
               className="font-medium"
             />
           </div>
-
-          {/* Time Breakdown */}
           <div className="border rounded-lg p-4">
             <TimeBreakdown recipe={recipe} />
           </div>
-
-          {/* Nutritional Information */}
           <div className="border rounded-lg p-4">
             <NutritionalTable nutrients={recipe.nutrients} />
           </div>

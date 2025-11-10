@@ -91,7 +91,6 @@ export const RecipeTable: React.FC<RecipeTableProps> = ({
     );
   }
 
-  // Show loading state with skeleton
   if (loading) {
     return (
       <div className="rounded-md border">
@@ -113,7 +112,6 @@ export const RecipeTable: React.FC<RecipeTableProps> = ({
     );
   }
 
-  // Show empty state
   if (recipes.length === 0) {
     return (
       <div className="rounded-md border">

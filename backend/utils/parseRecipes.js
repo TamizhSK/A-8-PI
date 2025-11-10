@@ -1,12 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs'); 
 
-/**
- * Validates and parses numeric values, handling NaN and null cases
- * @param {*} value - The value to parse
- * @param {*} defaultValue - Default value if parsing fails (default: null)
- * @returns {number|null} - Parsed number or default value
- */
 function parseNumericValue(value, defaultValue = null) {
   if (value === null || value === undefined || value === '') {
     return defaultValue;
@@ -16,12 +9,6 @@ function parseNumericValue(value, defaultValue = null) {
   return isNaN(parsed) ? defaultValue : parsed;
 }
 
-/**
- * Validates and cleans string values
- * @param {*} value - The value to clean
- * @param {*} defaultValue - Default value if cleaning fails (default: null)
- * @returns {string|null} - Cleaned string or default value
- */
 function parseStringValue(value, defaultValue = null) {
   if (value === null || value === undefined || value === '') {
     return defaultValue;
@@ -34,11 +21,7 @@ function parseStringValue(value, defaultValue = null) {
   return value.trim();
 }
 
-/**
- * Validates and parses nutritional data from JSONB format
- * @param {Object} nutrients - Raw nutrients object
- * @returns {Object|null} - Cleaned nutrients object or null
- */
+
 function parseNutrients(nutrients) {
   if (!nutrients || typeof nutrients !== 'object') {
     return null;
@@ -60,11 +43,11 @@ function parseNutrients(nutrients) {
   
   nutrientFields.forEach(field => {
     if (nutrients[field] !== undefined && nutrients[field] !== null) {
-      // Handle numeric fields (calories)
+
       if (field === 'calories') {
         cleanedNutrients[field] = parseNumericValue(nutrients[field]);
       } else {
-        // Handle string fields with units (e.g., "48 g", "78 mg")
+
         cleanedNutrients[field] = parseStringValue(nutrients[field]);
       }
     }
@@ -73,12 +56,7 @@ function parseNutrients(nutrients) {
   return Object.keys(cleanedNutrients).length > 0 ? cleanedNutrients : null;
 }
 
-/**
- * Validates and parses a single recipe object
- * @param {Object} recipe - Raw recipe data
- * @param {string|number} recipeId - Recipe identifier for error reporting
- * @returns {Object|null} - Cleaned recipe object or null if invalid
- */
+
 function parseRecipe(recipe, recipeId) {
   try {
     if (!recipe || typeof recipe !== 'object') {
@@ -86,7 +64,6 @@ function parseRecipe(recipe, recipeId) {
       return null;
     }
     
-    // Required fields validation
     const title = parseStringValue(recipe.title);
     const cuisine = parseStringValue(recipe.cuisine);
     
@@ -95,7 +72,6 @@ function parseRecipe(recipe, recipeId) {
       return null;
     }
     
-    // Parse and validate all fields
     const parsedRecipe = {
       cuisine: cuisine,
       title: title,
@@ -115,21 +91,16 @@ function parseRecipe(recipe, recipeId) {
   }
 }
 
-/**
- * Parses and validates recipe data from JSON file
- * @param {string} filePath - Path to the JSON file containing recipe data
- * @returns {Promise<Array>} - Array of validated recipe objects
- */
+
 async function parseRecipeData(filePath) {
   try {
     console.log(`Starting to parse recipe data from: ${filePath}`);
     
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
       throw new Error(`Recipe data file not found: ${filePath}`);
     }
     
-    // Read and parse JSON file
+  
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const rawData = JSON.parse(fileContent);
     
@@ -142,7 +113,7 @@ async function parseRecipeData(filePath) {
     let totalRecipes = 0;
     let validRecipes = 0;
     
-    // Process each recipe in the JSON object
+
     for (const [key, recipeData] of Object.entries(rawData)) {
       totalRecipes++;
       
@@ -175,11 +146,6 @@ async function parseRecipeData(filePath) {
   }
 }
 
-/**
- * Validates recipe data structure and provides statistics
- * @param {Array} recipes - Array of parsed recipes
- * @returns {Object} - Validation statistics
- */
 function validateRecipeData(recipes) {
   if (!Array.isArray(recipes)) {
     throw new Error('Expected array of recipes');
@@ -197,36 +163,27 @@ function validateRecipeData(recipes) {
   };
   
   recipes.forEach(recipe => {
-    // Count recipes with ratings
+
     if (recipe.rating !== null && recipe.rating !== undefined) {
       stats.withRating++;
       stats.ratingSum += recipe.rating;
       stats.ratingCount++;
     }
-    
-    // Count recipes with nutritional data
     if (recipe.nutrients && Object.keys(recipe.nutrients).length > 0) {
       stats.withNutrients++;
     }
-    
-    // Count recipes with timing data
     if (recipe.total_time || recipe.prep_time || recipe.cook_time) {
       stats.withTimes++;
     }
-    
-    // Collect cuisine types
     if (recipe.cuisine) {
       stats.cuisineTypes.add(recipe.cuisine);
     }
   });
-  
-  // Calculate average rating
+
   if (stats.ratingCount > 0) {
     stats.avgRating = (stats.ratingSum / stats.ratingCount).toFixed(2);
   }
-  
   stats.cuisineTypes = Array.from(stats.cuisineTypes);
-  
   return stats;
 }
 

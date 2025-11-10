@@ -1,16 +1,15 @@
 import axios from 'axios';
 import type { PaginatedRecipeResponse, SearchRecipeResponse, RecipeFilters } from '@/types/recipe';
 
-// Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 15000, // Increased timeout for better reliability
+  timeout: 15000, 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor for logging (development only)
+
 if (import.meta.env.DEV) {
   apiClient.interceptors.request.use(
     (config) => {
@@ -24,15 +23,20 @@ if (import.meta.env.DEV) {
   );
 }
 
-// Add response interceptor for error handling
+
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
+    // Don't log or handle cancelled requests
+    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      return Promise.reject(error);
+    }
+    
     console.error('API Response Error:', error.response?.data || error.message);
     
-    // Create user-friendly error messages
+  
     let userMessage = 'An unexpected error occurred';
     
     if (error.code === 'ECONNABORTED') {
@@ -40,7 +44,7 @@ apiClient.interceptors.response.use(
     } else if (error.code === 'ERR_NETWORK') {
       userMessage = 'Network error. Please check your connection.';
     } else if (error.response) {
-      // Server responded with error status
+      
       const status = error.response.status;
       const serverMessage = error.response.data?.message || error.response.data?.error;
       
@@ -61,11 +65,11 @@ apiClient.interceptors.response.use(
           userMessage = serverMessage || `Server error (${status}). Please try again.`;
       }
     } else if (error.request) {
-      // Request was made but no response received
+    
       userMessage = 'No response from server. Please check your connection.';
     }
     
-    // Create a new error with user-friendly message
+  
     const enhancedError = new Error(userMessage);
     enhancedError.name = error.name;
     enhancedError.cause = error;
@@ -75,13 +79,7 @@ apiClient.interceptors.response.use(
 );
 
 export class RecipeApiService {
-  /**
-   * Fetch paginated recipes
-   * @param page - Page number (default: 1)
-   * @param limit - Number of recipes per page (default: 15)
-   * @param signal - AbortSignal for request cancellation
-   * @returns Promise<PaginatedRecipeResponse>
-   */
+
   static async getRecipes(
     page: number = 1, 
     limit: number = 15, 
@@ -94,23 +92,18 @@ export class RecipeApiService {
       });
       return response.data;
     } catch (error) {
-      // Error is already enhanced by the interceptor
+      
       throw error;
     }
   }
 
-  /**
-   * Search recipes with filters
-   * @param filters - Search and filter criteria
-   * @param signal - AbortSignal for request cancellation
-   * @returns Promise<SearchRecipeResponse>
-   */
+
   static async searchRecipes(
     filters: RecipeFilters, 
     signal?: AbortSignal
   ): Promise<SearchRecipeResponse> {
     try {
-      // Remove empty filter values
+      
       const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
         if (value && value.trim() !== '') {
           acc[key] = value;
@@ -124,16 +117,20 @@ export class RecipeApiService {
       });
       return response.data;
     } catch (error) {
-      // Error is already enhanced by the interceptor
+      
       throw error;
     }
   }
 
-  /**
-   * Get available cuisines (utility method for dropdown)
-   * This would typically be a separate endpoint, but for now we'll implement it client-side
-   * @returns Promise<string[]>
-   */
+  static async deleteRecipe(id: number): Promise<{ message: string; data: { id: number; title: string } }> {
+    try {
+      const response = await apiClient.delete(`/recipes/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async getCuisines(): Promise<string[]> {
     try {
 
@@ -155,7 +152,7 @@ export class RecipeApiService {
         'Moroccan'
       ];
     } catch (error) {
-      // Error is already enhanced by the interceptor
+      
       throw error;
     }
   }

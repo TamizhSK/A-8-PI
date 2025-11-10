@@ -20,12 +20,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI
+    
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error details for debugging
+    
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ error, errorInfo });
   }
@@ -36,24 +36,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Custom fallback UI
+      
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default fallback UI
+      
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
           <div className="max-w-md space-y-4">
-            <div className="text-6xl">⚠️</div>
             <h2 className="text-2xl font-bold text-destructive">
               Something went wrong
             </h2>
             <p className="text-muted-foreground">
-              We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.
+              We encountered an unexpected error. Please try refreshing the page.
             </p>
             
-            {/* Show error details in development */}
+            
             {import.meta.env.DEV && this.state.error && (
               <details className="text-left bg-muted p-4 rounded-lg text-sm">
                 <summary className="cursor-pointer font-medium mb-2">
@@ -98,7 +97,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Hook version for functional components
 export const useErrorHandler = () => {
   const [error, setError] = React.useState<Error | null>(null);
 
@@ -111,7 +109,6 @@ export const useErrorHandler = () => {
     setError(error);
   }, []);
 
-  // Throw error to be caught by ErrorBoundary
   if (error) {
     throw error;
   }

@@ -50,23 +50,21 @@ export const Pagination: React.FC<PaginationProps> = ({
     const maxVisiblePages = 5;
     
     if (totalPages <= maxVisiblePages) {
-      // Show all pages if total pages is small
+    
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Show pages around current page
+      
       let startPage = Math.max(1, currentPage - 2);
       let endPage = Math.min(totalPages, currentPage + 2);
       
-      // Adjust if we're near the beginning or end
       if (currentPage <= 3) {
         endPage = Math.min(5, totalPages);
       } else if (currentPage >= totalPages - 2) {
         startPage = Math.max(1, totalPages - 4);
       }
       
-      // Add first page and ellipsis if needed
       if (startPage > 1) {
         pages.push(1);
         if (startPage > 2) {
@@ -74,12 +72,10 @@ export const Pagination: React.FC<PaginationProps> = ({
         }
       }
       
-      // Add visible pages
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
       
-      // Add ellipsis and last page if needed
       if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
           pages.push('...');
@@ -122,14 +118,11 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4">
-      {/* Items info */}
+
       <div className="text-sm text-muted-foreground">
         Showing {startItem} to {endItem} of {totalItems} results
       </div>
-
-      {/* Page navigation */}
       <div className="flex items-center space-x-2">
-        {/* Previous button */}
         <Button
           variant="outline"
           size="sm"
@@ -140,7 +133,6 @@ export const Pagination: React.FC<PaginationProps> = ({
           Previous
         </Button>
 
-        {/* Page numbers */}
         <div className="flex items-center space-x-1">
           {generatePageNumbers().map((page, index) => (
             <React.Fragment key={index}>
@@ -163,7 +155,6 @@ export const Pagination: React.FC<PaginationProps> = ({
           ))}
         </div>
 
-        {/* Next button */}
         <Button
           variant="outline"
           size="sm"
@@ -175,7 +166,6 @@ export const Pagination: React.FC<PaginationProps> = ({
         </Button>
       </div>
 
-      {/* Page size selector */}
       <div className="flex items-center space-x-2">
         <span className="text-sm text-muted-foreground">Items per page:</span>
         <Select

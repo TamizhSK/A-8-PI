@@ -4,35 +4,36 @@ import { RecipeApiService } from '@/api';
 import { RecipeTable, FilterBar, Pagination, RecipeDrawer } from '@/components';
 
 export const Home: React.FC = () => {
-  // Recipe data state
+  
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalRecipes, setTotalRecipes] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Filter state
+
   const [filters, setFilters] = useState<RecipeFilters>({});
   const [pendingFilters, setPendingFilters] = useState<RecipeFilters>({});
 
-  // Drawer state
+  
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  // Refs for debouncing and cleanup
+  
   const searchTimeoutRef = useRef<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Memoized function to check if filters are active
+  
   const hasActiveFilters = useMemo(() => {
     return Object.values(filters).some(value => value && value.trim() !== '');
   }, [filters]);
 
-  // Fetch recipes function with useCallback for performance and abort controller for cleanup
+  
   const fetchRecipes = useCallback(async (
     page: number = currentPage, 
     limit: number = pageSize, 
@@ -45,19 +46,19 @@ export const Home: React.FC = () => {
 
       let response: PaginatedRecipeResponse;
 
-      // Check if any filters are applied
+      
       const hasFilters = Object.values(searchFilters).some(value => value && value.trim() !== '');
 
       if (hasFilters) {
-        // Use search endpoint with filters
+        
         const searchResponse = await RecipeApiService.searchRecipes(searchFilters, signal);
         
-        // Check if request was aborted
+        
         if (signal?.aborted) {
           return;
         }
         
-        // For search results, we need to manually paginate
+        
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const paginatedData = searchResponse.data.slice(startIndex, endIndex);
@@ -70,10 +71,10 @@ export const Home: React.FC = () => {
           data: paginatedData
         };
       } else {
-        // Use regular paginated endpoint
+        
         response = await RecipeApiService.getRecipes(page, limit, signal);
         
-        // Check if request was aborted
+        
         if (signal?.aborted) {
           return;
         }
@@ -84,8 +85,8 @@ export const Home: React.FC = () => {
       setTotalRecipes(response.total);
       setTotalPages(response.totalPages);
     } catch (err) {
-      // Don't show error if request was aborted
-      if (signal?.aborted) {
+      
+      if (signal?.aborted || (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError'))) {
         return;
       }
       
@@ -100,14 +101,12 @@ export const Home: React.FC = () => {
     }
   }, [currentPage, pageSize, filters]);
 
-  // Initial data fetch
+  
   useEffect(() => {
-    // Create initial abort controller
+    
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, pageSize, {}, abortControllerRef.current.signal);
-    
-    // Cleanup function
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -118,88 +117,74 @@ export const Home: React.FC = () => {
     };
   }, [pageSize]);
 
-  // Handle page change with useCallback for performance
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    
-    // Cancel any ongoing request
+  
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(page, pageSize, filters, abortControllerRef.current.signal);
   }, [fetchRecipes, pageSize, filters]);
 
-  // Handle page size change with useCallback
   const handlePageSizeChange = useCallback((newPageSize: number) => {
     setPageSize(newPageSize);
     setCurrentPage(1);
-    
-    // Cancel any ongoing request
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, newPageSize, filters, abortControllerRef.current.signal);
   }, [fetchRecipes, filters]);
 
-  // Handle filter change with debouncing for better UX
+  
   const handleFilterChange = useCallback((newFilters: RecipeFilters) => {
     setPendingFilters(newFilters);
     
-    // Clear existing timeout
+    
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Set new timeout for debounced search
+    
     searchTimeoutRef.current = setTimeout(() => {
       setFilters(newFilters);
       setCurrentPage(1);
       
-      // Cancel any ongoing request
+      
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       
-      // Create new abort controller
+      
       abortControllerRef.current = new AbortController();
       
       fetchRecipes(1, pageSize, newFilters, abortControllerRef.current.signal);
-    }, 500); // 500ms debounce
+    }, 500); 
   }, [fetchRecipes, pageSize]);
 
-  // Handle search with useCallback (immediate search)
+  
   const handleSearch = useCallback(() => {
-    // Clear any pending debounced search
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
-    // Apply pending filters immediately
     setFilters(pendingFilters);
     setCurrentPage(1);
-    
-    // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, pageSize, pendingFilters, abortControllerRef.current.signal);
   }, [fetchRecipes, pageSize, pendingFilters]);
 
-  // Handle reset with useCallback
+  
   const handleReset = useCallback(() => {
-    // Clear any pending debounced search
+    
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -208,44 +193,60 @@ export const Home: React.FC = () => {
     setFilters(emptyFilters);
     setPendingFilters(emptyFilters);
     setCurrentPage(1);
-    
-    // Cancel any ongoing request
+  
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    // Create new abort controller
+    
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, pageSize, emptyFilters, abortControllerRef.current.signal);
   }, [fetchRecipes, pageSize]);
 
-  // Handle retry with useCallback
+  
   const handleRetry = useCallback(() => {
-    // Cancel any ongoing request
+    
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    // Create new abort controller
+  
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(currentPage, pageSize, filters, abortControllerRef.current.signal);
   }, [fetchRecipes, currentPage, pageSize, filters]);
 
-  // Handle recipe selection with useCallback
   const handleRecipeClick = useCallback((recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setDrawerOpen(true);
   }, []);
-
-  // Handle drawer close with useCallback
   const handleDrawerClose = useCallback((open: boolean) => {
     setDrawerOpen(open);
     if (!open) {
       setSelectedRecipe(null);
     }
   }, []);
+
+  const handleDeleteRecipe = useCallback(async (recipeId: number) => {
+    try {
+      setDeleting(true);
+      await RecipeApiService.deleteRecipe(recipeId);
+      
+      // Refresh the recipes list
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      
+      await fetchRecipes(currentPage, pageSize, filters, abortControllerRef.current.signal);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete recipe';
+      setError(errorMessage);
+      console.error('Error deleting recipe:', err);
+    } finally {
+      setDeleting(false);
+    }
+  }, [fetchRecipes, currentPage, pageSize, filters]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -257,7 +258,6 @@ export const Home: React.FC = () => {
           </p>
         </div>
 
-        {/* Filter Bar */}
         <FilterBar
           filters={pendingFilters}
           onFiltersChange={handleFilterChange}
@@ -266,7 +266,6 @@ export const Home: React.FC = () => {
           loading={loading}
         />
 
-        {/* Recipe Table */}
         <RecipeTable
           recipes={recipes}
           onRecipeClick={handleRecipeClick}
@@ -277,7 +276,6 @@ export const Home: React.FC = () => {
           onClearFilters={handleReset}
         />
 
-        {/* Pagination */}
         {!loading && recipes.length > 0 && (
           <Pagination
             currentPage={currentPage}
@@ -289,11 +287,12 @@ export const Home: React.FC = () => {
           />
         )}
 
-        {/* Recipe Drawer */}
         <RecipeDrawer
           recipe={selectedRecipe}
           open={drawerOpen}
           onOpenChange={handleDrawerClose}
+          onDelete={handleDeleteRecipe}
+          deleting={deleting}
         />
       </div>
     </div>

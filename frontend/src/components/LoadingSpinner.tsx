@@ -57,7 +57,6 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   );
 };
 
-// Loading skeleton for table rows
 export const TableRowSkeleton: React.FC<{ columns: number }> = ({ columns }) => {
   return (
     <>

@@ -22,6 +22,55 @@ class RecipesController {
     return isNaN(numValue) ? null : { operator: '=', value: numValue };
   }
 
+  async deleteRecipe(req, res) {
+    try {
+      const { id } = req.params;
+      
+
+      if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({
+          error: 'Invalid recipe ID',
+          message: 'Recipe ID must be a valid number'
+        });
+      }
+
+
+      const checkQuery = 'SELECT id, title FROM recipes WHERE id = $1';
+      const checkResult = await pool.query(checkQuery, [id]);
+      
+      if (checkResult.rowCount === 0) {
+        return res.status(404).json({
+          error: 'Recipe not found',
+          message: `No recipe found with id ${id}`
+        });
+      }
+      
+      const deleteQuery = 'DELETE FROM recipes WHERE id = $1 RETURNING id, title';
+      const deleteResult = await pool.query(deleteQuery, [id]);
+      
+      res.status(200).json({
+        message: 'Recipe deleted successfully',
+        data: {
+          id: deleteResult.rows[0].id,
+          title: deleteResult.rows[0].title
+        }
+      });
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      
+      if (error.code === 'ECONNREFUSED') {
+        return res.status(503).json({
+          error: 'Database connection failed',
+          message: 'Unable to connect to the database. Please try again later.'
+        });
+      }
+      
+      res.status(500).json({
+        error: 'Failed to delete recipe',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  }
   async searchRecipes(req, res) {
     try {
       const {
@@ -88,7 +137,6 @@ class RecipesController {
     } catch (error) {
       console.error('Error searching recipes:', error);
       
-      // Handle specific database errors
       if (error.code === 'ECONNREFUSED') {
         return res.status(503).json({
           error: 'Database connection failed',
@@ -96,7 +144,7 @@ class RecipesController {
         });
       }
       
-      if (error.code === '22P02') { // Invalid input syntax
+      if (error.code === '22P02') { 
         return res.status(400).json({
           error: 'Invalid search parameters',
           message: 'Please check your search criteria and try again.'
@@ -156,7 +204,6 @@ class RecipesController {
     } catch (error) {
       console.error('Error fetching recipes:', error);
       
-      // Handle specific database errors
       if (error.code === 'ECONNREFUSED') {
         return res.status(503).json({
           error: 'Database connection failed',
@@ -164,7 +211,7 @@ class RecipesController {
         });
       }
       
-      if (error.code === '22P02') { // Invalid input syntax
+      if (error.code === '22P02') { 
         return res.status(400).json({
           error: 'Invalid pagination parameters',
           message: 'Please check your page and limit values.'

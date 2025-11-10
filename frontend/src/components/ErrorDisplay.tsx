@@ -24,9 +24,9 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
                         errorMessage.toLowerCase().includes('internal');
 
   const getErrorIcon = () => {
-    if (isNetworkError) return '🌐';
-    if (isServerError) return '🔧';
-    return '⚠️';
+    if (isNetworkError) return '';
+    if (isServerError) return '';
+    return '';
   };
 
   const getErrorTitle = () => {
@@ -87,7 +87,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
     );
   }
 
-  // Default variant
+
   return (
     <div className={`flex flex-col items-center justify-center p-8 text-center space-y-4 ${className}`}>
       <div className="text-4xl">{getErrorIcon()}</div>
@@ -103,7 +103,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       {import.meta.env.DEV && (
         <details className="text-left bg-muted p-4 rounded-lg text-sm max-w-md">
           <summary className="cursor-pointer font-medium mb-2">
-            Technical Details (Development Only)
+            Technical Details
           </summary>
           <pre className="whitespace-pre-wrap text-xs">
             {errorMessage}

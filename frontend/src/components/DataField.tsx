@@ -47,7 +47,7 @@ export const DataField: React.FC<DataFieldProps> = ({
   );
 };
 
-// Specialized components for common data types
+
 export const TimeField: React.FC<{
   label?: string;
   minutes?: number;
@@ -100,7 +100,7 @@ export const NutrientField: React.FC<{
     if (typeof val === 'number') {
       return unit ? `${val}${unit}` : String(val);
     }
-    // Handle string values that might already include units
+    
     return String(val);
   };
 
