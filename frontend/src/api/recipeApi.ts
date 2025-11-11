@@ -1,160 +1,132 @@
-import axios from 'axios';
-import type { PaginatedRecipeResponse, SearchRecipeResponse, RecipeFilters } from '@/types/recipe';
+import type { Recipe, PaginatedRecipeResponse, SearchRecipeResponse, RecipeFilters } from '@/types/recipe';
 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 15000, 
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
+class ApiError extends Error {
+  status?: number;
+  data?: unknown;
 
-if (import.meta.env.DEV) {
-  apiClient.interceptors.request.use(
-    (config) => {
-      console.log('API Request:', config.method?.toUpperCase(), config.url, config.params);
-      return config;
-    },
-    (error) => {
-      console.error('API Request Error:', error);
-      return Promise.reject(error);
-    }
-  );
+  constructor(
+    message: string,
+    status?: number,
+    data?: unknown
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
 }
 
+async function handleResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    let errorData: unknown;
 
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Don't log or handle cancelled requests
-    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
-      return Promise.reject(error);
-    }
-    
-    console.error('API Response Error:', error.response?.data || error.message);
-    
-  
-    let userMessage = 'An unexpected error occurred';
-    
-    if (error.code === 'ECONNABORTED') {
-      userMessage = 'Request timed out. Please try again.';
-    } else if (error.code === 'ERR_NETWORK') {
-      userMessage = 'Network error. Please check your connection.';
-    } else if (error.response) {
-      
-      const status = error.response.status;
-      const serverMessage = error.response.data?.message || error.response.data?.error;
-      
-      switch (status) {
-        case 400:
-          userMessage = serverMessage || 'Invalid request. Please check your input.';
-          break;
-        case 404:
-          userMessage = 'The requested resource was not found.';
-          break;
-        case 500:
-          userMessage = 'Server error. Please try again later.';
-          break;
-        case 503:
-          userMessage = 'Service temporarily unavailable. Please try again later.';
-          break;
-        default:
-          userMessage = serverMessage || `Server error (${status}). Please try again.`;
+    try {
+      errorData = await response.json();
+      if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+        errorMessage = (errorData as { message: string }).message;
+      } else if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+        errorMessage = (errorData as { error: string }).error;
       }
-    } else if (error.request) {
-    
-      userMessage = 'No response from server. Please check your connection.';
+    } catch {
+      // If JSON parsing fails, use the default error message
     }
-    
-  
-    const enhancedError = new Error(userMessage);
-    enhancedError.name = error.name;
-    enhancedError.cause = error;
-    
-    return Promise.reject(enhancedError);
+
+    throw new ApiError(errorMessage, response.status, errorData);
   }
-);
+
+  return response.json();
+}
+
+async function makeRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  signal?: AbortSignal
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const defaultOptions: RequestInit = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    signal,
+  };
+
+  const mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: {
+      ...defaultOptions.headers,
+      ...options.headers,
+    },
+  };
+
+  if (import.meta.env.DEV) {
+    console.log('API Request:', mergedOptions.method || 'GET', url);
+  }
+
+  const response = await fetch(url, mergedOptions);
+  return handleResponse<T>(response);
+}
 
 export class RecipeApiService {
-
   static async getRecipes(
     page: number = 1, 
-    limit: number = 15, 
+    limit: number = 10, 
     signal?: AbortSignal
   ): Promise<PaginatedRecipeResponse> {
-    try {
-      const response = await apiClient.get<PaginatedRecipeResponse>('/recipes', {
-        params: { page, limit },
-        signal
-      });
-      return response.data;
-    } catch (error) {
-      
-      throw error;
-    }
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+
+    return makeRequest<PaginatedRecipeResponse>(`/recipes?${params}`, {}, signal);
   }
 
+  static async getRecipeById(id: number, signal?: AbortSignal): Promise<{ data: Recipe }> {
+    return makeRequest<{ data: Recipe }>(`/recipes/${id}`, {}, signal);
+  }
 
   static async searchRecipes(
     filters: RecipeFilters, 
     signal?: AbortSignal
   ): Promise<SearchRecipeResponse> {
-    try {
-      
-      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-        if (value && value.trim() !== '') {
-          acc[key] = value;
-        }
-        return acc;
-      }, {} as Record<string, string>);
+    const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+      if (value && value.trim() !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Record<string, string>);
 
-      const response = await apiClient.get<SearchRecipeResponse>('/recipes/search', {
-        params: cleanFilters,
-        signal
-      });
-      return response.data;
-    } catch (error) {
-      
-      throw error;
-    }
+    const params = new URLSearchParams(cleanFilters);
+    return makeRequest<SearchRecipeResponse>(`/recipes/search?${params}`, {}, signal);
+  }
+
+  static async createRecipe(recipe: Omit<Recipe, 'id' | 'created_at'>): Promise<{ message: string; data: Recipe }> {
+    return makeRequest<{ message: string; data: Recipe }>('/recipes', {
+      method: 'POST',
+      body: JSON.stringify(recipe),
+    });
+  }
+
+  static async updateRecipe(id: number, recipe: Partial<Omit<Recipe, 'id' | 'created_at'>>): Promise<{ message: string; data: Recipe }> {
+    return makeRequest<{ message: string; data: Recipe }>(`/recipes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(recipe),
+    });
   }
 
   static async deleteRecipe(id: number): Promise<{ message: string; data: { id: number; title: string } }> {
-    try {
-      const response = await apiClient.delete(`/recipes/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    return makeRequest<{ message: string; data: { id: number; title: string } }>(`/recipes/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   static async getCuisines(): Promise<string[]> {
-    try {
-
-      return [
-        'Italian',
-        'Chinese',
-        'Mexican',
-        'Indian',
-        'French',
-        'Japanese',
-        'Thai',
-        'Greek',
-        'Spanish',
-        'American',
-        'Mediterranean',
-        'Korean',
-        'Vietnamese',
-        'Lebanese',
-        'Moroccan'
-      ];
-    } catch (error) {
-      
-      throw error;
-    }
+    const response = await makeRequest<{ data: string[]; count: number }>('/recipes/cuisines/list');
+    return response.data;
   }
 }
 

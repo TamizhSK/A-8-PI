@@ -19,7 +19,7 @@ interface PaginationProps {
   loading?: boolean;
 }
 
-const pageSizeOptions = [15, 25, 40, 50];
+const pageSizeOptions = [5, 10, 15, 25, 50];
 
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,

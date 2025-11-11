@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { RecipeFilters } from '@/types/recipe';
+import { RecipeApiService } from '@/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,15 +19,6 @@ interface FilterBarProps {
   loading?: boolean;
 }
 
-const cuisineOptions = [
-  'american',
-  'asian',
-  'british',
-  'caribbean',
-  'central_europe',
-  'chinese',
-];
-
 const operatorOptions = [
   { value: '>=', label: '>=' },
   { value: '<=', label: '<=' },
@@ -42,6 +34,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onReset,
   loading = false,
 }) => {
+  const [cuisines, setCuisines] = useState<string[]>([]);
+  const [cuisinesLoading, setCuisinesLoading] = useState(true);
+
+  useEffect(() => {
+    const loadCuisines = async () => {
+      try {
+        setCuisinesLoading(true);
+        const cuisineList = await RecipeApiService.getCuisines();
+        setCuisines(cuisineList);
+      } catch (error) {
+        console.error('Failed to load cuisines:', error);
+        // Fallback to basic list if API fails
+        setCuisines(['American', 'Asian', 'British', 'Caribbean', 'Chinese', 'French', 'Italian']);
+      } finally {
+        setCuisinesLoading(false);
+      }
+    };
+    loadCuisines();
+  }, []);
   const handleInputChange = (field: keyof RecipeFilters, value: string) => {
     onFiltersChange({
       ...filters,
@@ -90,16 +101,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <Select
             value={filters.cuisine || 'all'}
             onValueChange={(value) => handleInputChange('cuisine', value === 'all' ? '' : value)}
-            disabled={loading}
+            disabled={loading || cuisinesLoading}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select cuisine..." />
+              <SelectValue placeholder={cuisinesLoading ? "Loading cuisines..." : "Select cuisine..."} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Cuisines</SelectItem>
-              {cuisineOptions.map((cuisine) => (
+              {cuisines.map((cuisine) => (
                 <SelectItem key={cuisine} value={cuisine}>
-                  {cuisine.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  {cuisine}
                 </SelectItem>
               ))}
             </SelectContent>

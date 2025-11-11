@@ -2,6 +2,7 @@ export { RecipeTable } from './RecipeTable';
 export { FilterBar } from './FilterBar';
 export { Pagination } from './Pagination';
 export { RecipeDrawer } from './RecipeDrawer';
+export { RecipeForm } from './RecipeForm';
 export { ErrorBoundary, useErrorHandler } from './ErrorBoundary';
 export { LoadingSpinner, LoadingOverlay, TableRowSkeleton } from './LoadingSpinner';
 export { ErrorDisplay } from './ErrorDisplay';

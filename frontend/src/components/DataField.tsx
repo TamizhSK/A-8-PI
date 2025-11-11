@@ -2,9 +2,9 @@ import React from 'react';
 
 interface DataFieldProps {
   label?: string;
-  value: any;
+  value: string | number | null | undefined;
   fallback?: string;
-  format?: (value: any) => string;
+  format?: (value: string | number) => string;
   className?: string;
   inline?: boolean;
 }
@@ -53,7 +53,9 @@ export const TimeField: React.FC<{
   minutes?: number;
   className?: string;
 }> = ({ label, minutes, className }) => {
-  const formatTime = (mins: number): string => {
+  const formatTime = (value: string | number): string => {
+    const mins = typeof value === 'string' ? parseInt(value, 10) : value;
+    if (isNaN(mins)) return 'N/A';
     if (mins < 60) return `${mins}m`;
     const hours = Math.floor(mins / 60);
     const remainingMinutes = mins % 60;
@@ -75,9 +77,11 @@ export const RatingField: React.FC<{
   rating?: number;
   className?: string;
 }> = ({ label, rating, className }) => {
-  const formatRating = (value: number): string => {
-    const stars = '★'.repeat(Math.floor(value)) + '☆'.repeat(5 - Math.floor(value));
-    return `${stars} (${value.toFixed(1)})`;
+  const formatRating = (value: string | number): string => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) return 'N/A';
+    const stars = '★'.repeat(Math.floor(numValue)) + '☆'.repeat(5 - Math.floor(numValue));
+    return `${stars} (${numValue.toFixed(1)})`;
   };
 
   return (

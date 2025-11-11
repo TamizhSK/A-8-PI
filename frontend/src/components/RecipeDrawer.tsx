@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Clock, Users, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Users, Trash2, Edit } from 'lucide-react';
 import { DataField, TimeField, NutrientField } from './DataField';
 
 interface RecipeDrawerProps {
@@ -31,6 +31,7 @@ interface RecipeDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDelete?: (recipeId: number) => Promise<void>;
+  onEdit?: (recipe: Recipe) => void;
   deleting?: boolean;
 }
 
@@ -152,6 +153,7 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
   open,
   onOpenChange,
   onDelete,
+  onEdit,
   deleting = false,
 }) => {
   if (!recipe) return null;
@@ -171,38 +173,50 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
             <SheetTitle className="text-left text-xl flex-1">
               {recipe.title}
             </SheetTitle>
-            {onDelete && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-2 text-destructive hover:text-destructive"
-                    disabled={deleting}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete "{recipe.title}"? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex gap-2">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(recipe)}
+                  disabled={deleting}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
                       disabled={deleting}
                     >
-                      {deleting ? 'Deleting...' : 'Delete'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{recipe.title}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deleting}
+                      >
+                        {deleting ? 'Deleting...' : 'Delete'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="capitalize bg-secondary px-2 py-1 rounded-md">

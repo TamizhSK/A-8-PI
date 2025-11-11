@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Recipe, RecipeFilters, PaginatedRecipeResponse } from '@/types/recipe';
 import { RecipeApiService } from '@/api';
-import { RecipeTable, FilterBar, Pagination, RecipeDrawer } from '@/components';
+import { RecipeTable, FilterBar, Pagination, RecipeDrawer, RecipeForm } from '@/components';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 export const Home: React.FC = () => {
   
@@ -11,7 +13,7 @@ export const Home: React.FC = () => {
 
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [totalRecipes, setTotalRecipes] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -23,6 +25,11 @@ export const Home: React.FC = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  
+  // Form state
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   
   const searchTimeoutRef = useRef<number | null>(null);
@@ -35,9 +42,9 @@ export const Home: React.FC = () => {
 
   
   const fetchRecipes = useCallback(async (
-    page: number = currentPage, 
-    limit: number = pageSize, 
-    searchFilters: RecipeFilters = filters,
+    page: number, 
+    limit: number, 
+    searchFilters: RecipeFilters,
     signal?: AbortSignal
   ) => {
     try {
@@ -46,18 +53,14 @@ export const Home: React.FC = () => {
 
       let response: PaginatedRecipeResponse;
 
-      
       const hasFilters = Object.values(searchFilters).some(value => value && value.trim() !== '');
 
       if (hasFilters) {
-        
         const searchResponse = await RecipeApiService.searchRecipes(searchFilters, signal);
-        
         
         if (signal?.aborted) {
           return;
         }
-        
         
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
@@ -71,9 +74,7 @@ export const Home: React.FC = () => {
           data: paginatedData
         };
       } else {
-        
         response = await RecipeApiService.getRecipes(page, limit, signal);
-        
         
         if (signal?.aborted) {
           return;
@@ -85,7 +86,6 @@ export const Home: React.FC = () => {
       setTotalRecipes(response.total);
       setTotalPages(response.totalPages);
     } catch (err) {
-      
       if (signal?.aborted || (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError'))) {
         return;
       }
@@ -99,11 +99,10 @@ export const Home: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [currentPage, pageSize, filters]);
+  }, []);
 
   
   useEffect(() => {
-    
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, pageSize, {}, abortControllerRef.current.signal);
@@ -115,11 +114,9 @@ export const Home: React.FC = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [pageSize]);
+  }, [pageSize, fetchRecipes]);
 
   const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -160,7 +157,6 @@ export const Home: React.FC = () => {
         abortControllerRef.current.abort();
       }
       
-      
       abortControllerRef.current = new AbortController();
       
       fetchRecipes(1, pageSize, newFilters, abortControllerRef.current.signal);
@@ -198,7 +194,6 @@ export const Home: React.FC = () => {
       abortControllerRef.current.abort();
     }
     
-    
     abortControllerRef.current = new AbortController();
     
     fetchRecipes(1, pageSize, emptyFilters, abortControllerRef.current.signal);
@@ -212,7 +207,6 @@ export const Home: React.FC = () => {
     }
   
     abortControllerRef.current = new AbortController();
-    
     fetchRecipes(currentPage, pageSize, filters, abortControllerRef.current.signal);
   }, [fetchRecipes, currentPage, pageSize, filters]);
 
@@ -237,7 +231,6 @@ export const Home: React.FC = () => {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
-      
       await fetchRecipes(currentPage, pageSize, filters, abortControllerRef.current.signal);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete recipe';
@@ -248,14 +241,41 @@ export const Home: React.FC = () => {
     }
   }, [fetchRecipes, currentPage, pageSize, filters]);
 
+  const handleCreateRecipe = useCallback(() => {
+    setFormMode('create');
+    setEditingRecipe(null);
+    setFormOpen(true);
+  }, []);
+
+  const handleEditRecipe = useCallback((recipe: Recipe) => {
+    setFormMode('edit');
+    setEditingRecipe(recipe);
+    setFormOpen(true);
+  }, []);
+
+  const handleFormSave = useCallback(async () => {
+    // Refresh the recipes list
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    await fetchRecipes(currentPage, pageSize, filters, abortControllerRef.current.signal);
+  }, [fetchRecipes, currentPage, pageSize, filters]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Recipe Management</h1>
-          <p className="text-muted-foreground">
-            Browse and search through our collection of recipes
-          </p>
+        <div className="flex justify-between items-baseline">
+          <div className="text-start space-y-2">
+            <h1 className="text-3xl font-bold">Recipe Management</h1>
+            <p className="text-muted-foreground">
+              Browse and search through our collection of recipes
+            </p>
+          </div>
+          <Button onClick={handleCreateRecipe} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Recipe
+          </Button>
         </div>
 
         <FilterBar
@@ -292,7 +312,16 @@ export const Home: React.FC = () => {
           open={drawerOpen}
           onOpenChange={handleDrawerClose}
           onDelete={handleDeleteRecipe}
+          onEdit={handleEditRecipe}
           deleting={deleting}
+        />
+
+        <RecipeForm
+          recipe={editingRecipe}
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          onSave={handleFormSave}
+          mode={formMode}
         />
       </div>
     </div>
